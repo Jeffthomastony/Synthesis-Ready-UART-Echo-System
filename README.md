@@ -2,7 +2,7 @@
 
 A robust, synthesis-ready asynchronous serial communication system (UART Receiver & Transmitter) designed in Verilog. This project demonstrates core digital logic and VLSI design principles, culminating in a Top-Level Loopback (Echo) module that receives data from a host and instantly transmits it back.
 **
-Tech Stack & Tools**
+I. Tech Stack & Tools**
 
 Hardware Description Language: Verilog (IEEE 1364)
 
@@ -12,7 +12,7 @@ Target Architecture: Xilinx Artix-7 (xc7a35tcpg236-1)
 
 Core Concepts: RTL Design, Asynchronous Protocols, Finite State Machines (FSM), Metastability, Clock Domain Crossing.
 **
-Hardware Architecture**
+II. Hardware Architecture**
 **
 1. The Receiver (Rx) & 16x Oversampling**
 
@@ -30,13 +30,13 @@ The transmitter reverses the process, utilizing a dedicated 1x baud rate generat
 **
 The system is bound together by a top-level module acting as the physical motherboard. It directly wires the receiver's rx_data output bus to the transmitter's tx_data input bus, and routes the rx_done flag directly into the tx_start trigger, creating a seamless, zero-latency hardware echo response.
 
-**Verification & Simulation**
+**III. Verification & Simulation**
 
 The design was functionally verified using custom behavioral testbenches. The final system was validated using tb_uart_top_echo.v, which injects a 10-bit asynchronous UART frame into the receiver and verifies the exact bit-pattern being echoed back out of the transmitter 1 millisecond later.
 
 <img width="1038" height="601" alt="Screenshot 2026-07-12 095842" src="https://github.com/user-attachments/assets/8a4196f4-649f-4596-8081-370beab0b125" />
 **
-RTL Synthesis**
+IV. RTL Synthesis**
 
 The Verilog code was successfully synthesized into physical hardware structures using Xilinx Vivado, mapped cleanly to Look-Up Tables (LUTs) and Flip-Flops for the Artix-7 architecture with no unintended latches.
 
