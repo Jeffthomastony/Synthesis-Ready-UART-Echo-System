@@ -63,7 +63,8 @@ The design is integrated by a top-level motherboard module (uart_top_echo). It b
 
 The design was functionally verified using a custom behavioral testbench (tb_uart_top_echo.v). The testbench simulates a host computer transmitting the character 'B' (ASCII 0x42 or 8'b01000010) to the FPGA's rx line, and monitors the tx line for the reflected response.
 
-(Insert your top-level echo waveform screenshot here)
+<img width="1038" height="601" alt="Screenshot 2026-07-12 095842" src="https://github.com/user-attachments/assets/c8d7e4bd-4080-4960-ba15-6d4b9221b5e4" />
+
 
 
 Logic analyzer waveform verifying asynchronous RX frame capture and the immediate automatic TX echo output.
@@ -72,7 +73,8 @@ Logic analyzer waveform verifying asynchronous RX frame capture and the immediat
 
 The Verilog code was successfully synthesized into physical hardware structures using Xilinx Vivado, mapped cleanly to Look-Up Tables (LUTs) and Flip-Flops for the Artix-7 architecture with no unintended latches.
 
-(Insert your top-level schematic screenshot here)
+<img width="1263" height="580" alt="Screenshot 2026-07-12 100235" src="https://github.com/user-attachments/assets/7372aedf-5976-4ba4-ba49-248330c71985" />
+
 
 
 Vivado Generated Synthesis Schematic outlining the structural mapping of the oversampling counters, synchronizer flip-flops, and FSM transition logic.
