@@ -79,18 +79,5 @@ The Verilog code was successfully synthesized into physical hardware structures 
 
 Vivado Generated Synthesis Schematic outlining the structural mapping of the oversampling counters, synchronizer flip-flops, and FSM transition logic.
 
-🚀 How to Run the Design in Vivado
-
-Clone this repository.
-
-Open Xilinx Vivado and select Create Project.
-
-Add the files in /src (baud_rate_gen.v, uart_receiver.v, uart_transmitter.v, uart_top_echo.v) as Design Sources.
-
-Add /sim/tb_uart_top_echo.v as a Simulation Source.
-
-Right-click the testbench inside Vivado and select Set as Top.
-
-Click Run Simulation -> Run Behavioral Simulation.
 
 Set simulation run time to 3.0 ms and analyze the waveform.
