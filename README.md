@@ -1,43 +1,12 @@
-**Synthesis-Ready UART Echo System (RTL Design)**
-
-A robust, synthesis-ready asynchronous serial communication system (UART Receiver & Transmitter) designed in Verilog. This project demonstrates core digital logic and VLSI design principles, culminating in a Top-Level Loopback (Echo) module that receives data from a host and instantly transmits it back.
-**
-I. Tech Stack & Tools**
-
-Hardware Description Language: Verilog (IEEE 1364)
-
-Synthesis & Simulation: AMD Xilinx Vivado ML Standard
-
-Target Architecture: Xilinx Artix-7 (xc7a35tcpg236-1)
-
-Core Concepts: RTL Design, Asynchronous Protocols, Finite State Machines (FSM), Metastability, Clock Domain Crossing.
-**
-II. Hardware Architecture**
-
-**1. The Receiver (Rx) & 16x Oversampling**
-
-To ensure highly accurate data sampling in an asynchronous environment, the receiver utilizes a clock divider generating a tick pulse at 16 times the target baud rate (9600 baud). This acts as a digital tape measure, anchoring the main FSM to the exact physical center of incoming bit widths to maximize noise immunity.
-
-**2. Metastability Synchronizer**
-
-Because the FPGA system clock and external UART transmitters operate on independent clock domains, incoming data is susceptible to timing violations. A 2-stage D-Flip-Flop synchronizer isolates the input, allowing asynchronous signals to safely settle into a valid logic state before entering the receiver's sequential logic paths.
-
-**3. The Transmitter (Tx)
-**
-The transmitter reverses the process, utilizing a dedicated 1x baud rate generator. Upon receiving a tx_start pulse, the transmitter FSM latches the parallel 8-bit data into a shift register and sequentially drives the serial tx wire, appending protocol-accurate Start and Stop bits.
-
-**4. Top-Level Loopback (Echo) Module
-**
-The system is bound together by a top-level module acting as the physical motherboard. It directly wires the receiver's rx_data output bus to the transmitter's tx_data input bus, and routes the rx_done flag directly into the tx_start trigger, creating a seamless, zero-latency hardware echo response.
-
-**III. Verification & Simulation**
-
-The design was functionally verified using custom behavioral testbenches. The final system was validated using tb_uart_top_echo.v, which injects a 10-bit asynchronous UART frame into the receiver and verifies the exact bit-pattern being echoed back out of the transmitter 1 millisecond later.
-
-<img width="1038" height="601" alt="Screenshot 2026-07-12 095842" src="https://github.com/user-attachments/assets/8a4196f4-649f-4596-8081-370beab0b125" />
-**
-IV. RTL Synthesis**
-
-The Verilog code was successfully synthesized into physical hardware structures using Xilinx Vivado, mapped cleanly to Look-Up Tables (LUTs) and Flip-Flops for the Artix-7 architecture with no unintended latches.
-
-<img width="1263" height="580" alt="Screenshot 2026-07-12 100235" src="https://github.com/user-attachments/assets/a86bdd39-2aa3-4318-86c8-c8a29265c4b7" />
+Synthesis-Ready UART Echo System (RTL Design)A robust, synthesis-ready asynchronous serial communication system (UART Receiver & Transmitter) designed in Verilog. This project demonstrates core digital logic and VLSI design principles, culminating in a Top-Level Loopback (Echo) module that receives data from a host and instantly transmits it back.🛠️ Tech Stack & ToolsHardware Description Language: Verilog (IEEE 1364)Synthesis & Simulation: AMD Xilinx Vivado ML StandardTarget Architecture: Xilinx Artix-7 (xc7a35tcpg236-1)Core Concepts: RTL Design, Asynchronous Protocols, Finite State Machines (FSM), Metastability, Clock Domain Crossing.🏗️ Hardware ArchitectureThe system is split into modular components to manage clock domains, safely capture incoming asynchronous data, process it synchronously, and drive serial outputs back to the host.graph TD
+    rx[Physical RX Pin] --> sync[2-Stage Synchronizer]
+    sync --> u_rx[UART Receiver FSM]
+    
+    clk[50 MHz Master Clock] --> u_baud[Baud Rate Generator]
+    u_baud -->|16x Oversampling Ticks| u_rx
+    
+    u_rx -->|8-bit Parallel Bus| u_tx[UART Transmitter]
+    u_rx -->|rx_done Pulse| u_tx
+    
+    u_tx --> tx[Physical TX Pin]
+1. The Baud Rate Generator (16x Oversampling)To ensure highly accurate data sampling in an asynchronous environment, the receiver utilizes a clock divider generating a tick pulse at $16\times$ the target baud rate ($9600\text{ baud}$). This acts as a digital tape measure, anchoring the main FSM to the exact physical center of incoming bit widths to maximize noise immunity.$$\text{Target Tick Frequency} = 9600\text{ baud} \times 16 = 153.6\text{ kHz}$$$$\text{Counter Maximum Value} = \frac{50\text{ MHz}}{153.6\text{ kHz}} \approx 325.52 \rightarrow 326\text{ cycles}$$Because counting starts at $0$, the internal register counts from $0$ up to $325$.2. Metastability SynchronizerBecause the FPGA system clock and external UART transmitters operate on independent, asynchronous clock domains, incoming data is highly susceptible to timing violations. A 2-stage D-Flip-Flop synchronizer isolates the input, allowing unstable signals to safely settle into a valid logic state before entering the receiver's sequential logic paths.3. The Receiver (Rx) FSMGoverned by a 4-state Finite State Machine (IDLE, START, DATA, STOP), the receiver samples the synchronized data line. Once a falling edge triggers the FSM out of IDLE, it uses the oversampling ticks to step into the exact midpoint of each bit-width, shifting the bits into an $8\text{-bit}$ register LSB-first.4. The Transmitter (Tx)The transmitter operates on a dedicated $1\times$ baud-rate divider counting up to $5208$ clock cycles per bit:$$\text{Transmitter Counter Period} = \frac{50\text{ MHz}}{9600\text{ baud}} \approx 5208.33 \rightarrow 5208\text{ cycles}$$Upon receiving a tx_start pulse, the transmitter FSM latches the parallel $8\text{-bit}$ data into a shift register, pulls the tx line low to assert a Start Bit, wiggles the serial output LSB-first, and concludes by asserting a high Stop Bit.5. Top-Level Loopback (Echo) ModuleThe design is integrated by a top-level motherboard module (uart_top_echo). It binds the modules together by directly routing the receiver's output bus (rx_data) to the transmitter's input bus (tx_data), and wiring the receiver's valid-data flag (rx_done) directly to the transmitter's initiation trigger (tx_start). This creates a zero-latency hardware loopback.🔬 Verification & SimulationThe design was functionally verified using a custom behavioral testbench (tb_uart_top_echo.v). The testbench simulates a host computer transmitting the character 'B' (ASCII 0x42 or 8'b01000010) to the FPGA's rx line, and monitors the tx line for the reflected response.(Insert your top-level echo waveform screenshot here)Logic analyzer waveform verifying asynchronous RX frame capture and the immediate automatic TX echo output.🧩 RTL SynthesisThe Verilog code was successfully synthesized into physical hardware structures using Xilinx Vivado, mapped cleanly to Look-Up Tables (LUTs) and Flip-Flops for the Artix-7 architecture with no unintended latches.(Insert your top-level schematic screenshot here)Vivado Generated Synthesis Schematic outlining the structural mapping of the oversampling counters, synchronizer flip-flops, and FSM transition logic.🚀 How to Run the Design in VivadoClone this repository.Open Xilinx Vivado and select Create Project.Add the files in /src (baud_rate_gen.v, uart_receiver.v, uart_transmitter.v, uart_top_echo.v) as Design Sources.Add /sim/tb_uart_top_echo.v as a Simulation Source.Right-click the testbench inside Vivado and select Set as
