@@ -13,8 +13,8 @@ Target Architecture: Xilinx Artix-7 (xc7a35tcpg236-1)
 Core Concepts: RTL Design, Asynchronous Protocols, Finite State Machines (FSM), Metastability, Clock Domain Crossing.
 **
 II. Hardware Architecture**
-**
-1. The Receiver (Rx) & 16x Oversampling**
+
+**1. The Receiver (Rx) & 16x Oversampling**
 
 To ensure highly accurate data sampling in an asynchronous environment, the receiver utilizes a clock divider generating a tick pulse at 16 times the target baud rate (9600 baud). This acts as a digital tape measure, anchoring the main FSM to the exact physical center of incoming bit widths to maximize noise immunity.
 
