@@ -1,83 +1,414 @@
-Synthesis-Ready UART Echo System (RTL Design)
+# Synthesis-Ready UART Echo System (RTL Design)
 
-A robust, synthesis-ready asynchronous serial communication system (UART Receiver & Transmitter) designed in Verilog. This project demonstrates core digital logic and VLSI design principles, culminating in a Top-Level Loopback (Echo) module that receives data from a host and instantly transmits it back.
+A fully synthesizable **UART Receiver and Transmitter system** designed in **Verilog HDL**, demonstrating fundamental RTL design concepts used in digital VLSI systems.
 
-🛠️ Tech Stack & Tools
+This project implements a complete asynchronous serial communication pipeline where incoming UART data is received, processed synchronously, and transmitted back automatically through a hardware loopback mechanism.
 
-Hardware Description Language: Verilog (IEEE 1364)
+The design focuses on:
 
-Synthesis & Simulation: AMD Xilinx Vivado ML Standard
+- RTL architecture development
+- Asynchronous signal synchronization
+- Baud-rate generation
+- FSM-based UART communication
+- Hardware verification
+- FPGA synthesis using Xilinx Vivado
 
-Target Architecture: Xilinx Artix-7 (xc7a35tcpg236-1)
+---
 
-Core Concepts: RTL Design, Asynchronous Protocols, Finite State Machines (FSM), Metastability, Clock Domain Crossing.
+# 📌 Project Overview
 
-🏗️ Hardware Architecture
+UART (Universal Asynchronous Receiver Transmitter) is a widely used serial communication protocol that enables data transfer between digital systems without requiring a shared clock.
 
-The system is split into modular components to manage clock domains, safely capture incoming asynchronous data, process it synchronously, and drive serial outputs back to the host.
+This project implements:
 
+- A **UART Receiver (RX)** capable of sampling asynchronous serial data
+- A **UART Transmitter (TX)** capable of generating UART frames
+- A **Top-Level Echo Module** that automatically returns received data back to the sender
+
+### System Flow
+
+```
+Host → UART RX → Parallel Data Processing → UART TX → Host
+```
+
+The complete design is optimized for FPGA implementation and verified through simulation and synthesis.
+
+---
+
+# 🛠️ Technology Stack
+
+| Category | Tools / Specifications |
+|----------|------------------------|
+| Hardware Description Language | Verilog HDL (IEEE 1364) |
+| FPGA Development Tool | AMD Xilinx Vivado ML Standard |
+| Target FPGA | Xilinx Artix-7 (xc7a35tcpg236-1) |
+| Clock Frequency | 50 MHz |
+| Communication Protocol | UART |
+| Baud Rate | 9600 bps |
+| Design Style | RTL Design |
+| Verification | Behavioral Simulation |
+
+---
+
+# ✨ Key Features
+
+- ✅ Fully synthesizable Verilog RTL design
+- ✅ Modular UART RX and TX architecture
+- ✅ 16× oversampling-based UART reception
+- ✅ 2-stage synchronizer for metastability protection
+- ✅ FSM-controlled communication logic
+- ✅ LSB-first UART data transmission
+- ✅ Automated hardware loopback (Echo Functionality)
+- ✅ Verified through simulation and FPGA synthesis
+
+---
+
+# 🏗️ Hardware Architecture
+
+The design consists of four major blocks:
+
+1. Input Synchronization
+2. Baud Rate Generation
+3. UART Receiver FSM
+4. UART Transmitter FSM
+
+
+## Block Diagram
+
+```mermaid
 graph TD
-    rx[Physical RX Pin] --> sync[2-Stage Synchronizer]
-    sync --> u_rx[UART Receiver FSM]
-    
-    clk[50 MHz Master Clock] --> u_baud[Baud Rate Generator]
-    u_baud -->|16x Oversampling Ticks| u_rx
-    
-    u_rx -->|8-bit Parallel Bus| u_tx[UART Transmitter]
-    u_rx -->|rx_done Pulse| u_tx
-    
-    u_tx --> tx[Physical TX Pin]
+
+rx[Physical RX Pin] --> sync[2-Stage Synchronizer]
+
+sync --> u_rx[UART Receiver FSM]
+
+clk[50 MHz Master Clock] --> u_baud[Baud Rate Generator]
+
+u_baud -->|16x Oversampling Tick| u_rx
+
+u_rx -->|8-bit Parallel Data| u_tx[UART Transmitter]
+
+u_rx -->|rx_done Pulse| u_tx
+
+u_tx --> tx[Physical TX Pin]
+```
+
+---
+
+# ⚙️ Module Description
+
+## 1. Baud Rate Generator (16× Oversampling)
+
+UART communication does not use a shared clock between transmitter and receiver. Therefore, accurate sampling of incoming bits is required.
+
+The receiver uses a **16× oversampling clock** to identify the center point of each received bit.
+
+### Configuration
+
+System Clock:
+
+\[
+F_{clk}=50MHz
+\]
 
 
-1. The Baud Rate Generator (16x Oversampling)
+Required Oversampling Frequency:
 
-To ensure highly accurate data sampling in an asynchronous environment, the receiver utilizes a clock divider generating a tick pulse at $16\times$ the target baud rate ($9600\text{ baud}$). This acts as a digital tape measure, anchoring the main FSM to the exact physical center of incoming bit widths to maximize noise immunity.
-
-$$\text{Target Tick Frequency} = 9600\text{ baud} \times 16 = 153.6\text{ kHz}$$
-
-$$\text{Counter Maximum Value} = \frac{50\text{ MHz}}{153.6\text{ kHz}} \approx 325.52 \rightarrow 326\text{ cycles}$$
-
-Because counting starts at $0$, the internal register counts from $0$ up to $325$.
-
-2. Metastability Synchronizer
-
-Because the FPGA system clock and external UART transmitters operate on independent, asynchronous clock domains, incoming data is highly susceptible to timing violations. A 2-stage D-Flip-Flop synchronizer isolates the input, allowing unstable signals to safely settle into a valid logic state before entering the receiver's sequential logic paths.
-
-3. The Receiver (Rx) FSM
-
-Governed by a 4-state Finite State Machine (IDLE, START, DATA, STOP), the receiver samples the synchronized data line. Once a falling edge triggers the FSM out of IDLE, it uses the oversampling ticks to step into the exact midpoint of each bit-width, shifting the bits into an $8\text{-bit}$ register LSB-first.
-
-4. The Transmitter (Tx)
-
-The transmitter operates on a dedicated $1\times$ baud-rate divider counting up to $5208$ clock cycles per bit:
-
-$$\text{Transmitter Counter Period} = \frac{50\text{ MHz}}{9600\text{ baud}} \approx 5208.33 \rightarrow 5208\text{ cycles}$$
-
-Upon receiving a tx_start pulse, the transmitter FSM latches the parallel $8\text{-bit}$ data into a shift register, pulls the tx line low to assert a Start Bit, wiggles the serial output LSB-first, and concludes by asserting a high Stop Bit.
-
-5. Top-Level Loopback (Echo) Module
-
-The design is integrated by a top-level motherboard module (uart_top_echo). It binds the modules together by directly routing the receiver's output bus (rx_data) to the transmitter's input bus (tx_data), and wiring the receiver's valid-data flag (rx_done) directly to the transmitter's initiation trigger (tx_start). This creates a zero-latency hardware loopback.
-
-🔬 Verification & Simulation
-
-The design was functionally verified using a custom behavioral testbench (tb_uart_top_echo.v). The testbench simulates a host computer transmitting the character 'B' (ASCII 0x42 or 8'b01000010) to the FPGA's rx line, and monitors the tx line for the reflected response.
-
-<img width="1038" height="601" alt="Screenshot 2026-07-12 095842" src="https://github.com/user-attachments/assets/c8d7e4bd-4080-4960-ba15-6d4b9221b5e4" />
+\[
+F_{tick}=9600 \times 16
+\]
 
 
-
-Logic analyzer waveform verifying asynchronous RX frame capture and the immediate automatic TX echo output.
-
-🧩 RTL Synthesis
-
-The Verilog code was successfully synthesized into physical hardware structures using Xilinx Vivado, mapped cleanly to Look-Up Tables (LUTs) and Flip-Flops for the Artix-7 architecture with no unintended latches.
-
-<img width="1263" height="580" alt="Screenshot 2026-07-12 100235" src="https://github.com/user-attachments/assets/7372aedf-5976-4ba4-ba49-248330c71985" />
+\[
+F_{tick}=153.6kHz
+\]
 
 
+Counter Calculation:
 
-Vivado Generated Synthesis Schematic outlining the structural mapping of the oversampling counters, synchronizer flip-flops, and FSM transition logic.
+\[
+Counter=\frac{50MHz}{153.6kHz}
+\]
 
 
-Set simulation run time to 3.0 ms and analyze the waveform.
+\[
+Counter \approx 325.52
+\]
+
+
+The baud generator counts:
+
+```
+0 → 325
+```
+
+before generating the next sampling tick.
+
+This provides accurate UART timing and improves noise immunity during reception.
+
+---
+
+# 2. Metastability Synchronizer
+
+The UART RX input is asynchronous with respect to the FPGA system clock.
+
+Directly sampling this signal may cause metastability inside FPGA flip-flops.
+
+To prevent this, a two-stage synchronizer is implemented:
+
+```
+RX Input
+   |
+   ↓
+Flip-Flop 1
+   |
+   ↓
+Flip-Flop 2
+   |
+   ↓
+Receiver FSM
+```
+
+The first flip-flop captures the asynchronous signal, while the second provides a stable signal for synchronous processing.
+
+---
+
+# 3. UART Receiver (RX) FSM
+
+The receiver is controlled using a four-state Finite State Machine:
+
+| State | Function |
+|-------|----------|
+| IDLE | Waits for incoming UART frame |
+| START | Detects start bit |
+| DATA | Samples 8-bit payload |
+| STOP | Validates stop bit |
+
+### Reception Process
+
+1. Detect falling edge on RX line
+2. Wait for midpoint of start bit
+3. Sample each data bit using 16× clock ticks
+4. Shift bits into an 8-bit register
+5. Generate `rx_done` pulse after successful reception
+
+
+UART Frame Format:
+
+```
+Start Bit | 8 Data Bits | Stop Bit
+
+    0     |    D0-D7    |    1
+```
+
+---
+
+# 4. UART Transmitter (TX)
+
+The transmitter converts parallel data into a serial UART frame.
+
+The TX module operates at the standard baud rate.
+
+Calculation:
+
+\[
+Counter=\frac{50MHz}{9600}
+\]
+
+
+\[
+Counter=5208.33
+\]
+
+
+Therefore:
+
+```
+5208 clock cycles = 1 UART bit period
+```
+
+### Transmission Sequence
+
+When `tx_start` is asserted:
+
+1. Load 8-bit data into shift register
+2. Send Start Bit (`0`)
+3. Transmit data bits LSB first
+4. Send Stop Bit (`1`)
+5. Return to idle state
+
+---
+
+# 🔄 Top-Level Loopback Module
+
+The `uart_top_echo` module integrates the complete system.
+
+Data flow:
+
+```
+RX Pin
+  |
+  ↓
+UART Receiver
+  |
+  ↓
+rx_data[7:0]
+  |
+  ↓
+UART Transmitter
+  |
+  ↓
+TX Pin
+```
+
+The receiver completion signal:
+
+```
+rx_done → tx_start
+```
+
+directly triggers transmission.
+
+This creates a **zero-latency hardware UART echo system**.
+
+---
+
+# 🔬 Verification & Simulation
+
+The design was verified using a custom behavioral testbench:
+
+```
+tb_uart_top_echo.v
+```
+
+## Test Scenario
+
+The testbench simulates:
+
+- Host transmitting character:
+
+```
+ASCII Character : 'B'
+Hex Value       : 0x42
+Binary           : 01000010
+```
+
+- FPGA receiving the UART frame
+- Automatic retransmission through TX
+- Monitoring the returned serial waveform
+
+
+## Simulation Result
+
+
+<img width="1038" height="601" alt="UART Simulation Waveform" src="https://github.com/user-attachments/assets/c8d7e4bd-4080-4960-ba15-6d4b9221b5e4">
+
+
+The waveform confirms:
+
+- Correct UART frame detection
+- Proper RX sampling
+- Successful data recovery
+- Automatic TX echo generation
+
+---
+
+# 🧩 RTL Synthesis Results
+
+The design was synthesized using:
+
+**AMD Xilinx Vivado ML Standard**
+
+Target Device:
+
+```
+xc7a35tcpg236-1
+```
+
+The RTL design was successfully mapped into FPGA hardware resources:
+
+- LUTs for combinational logic
+- Flip-flops for sequential logic
+- FSM transition logic
+- Baud rate counters
+- Synchronizer registers
+
+No unintended latches were generated.
+
+
+## Vivado Synthesis Schematic
+
+
+<img width="1263" height="580" alt="Vivado Synthesis Schematic" src="https://github.com/user-attachments/assets/7372aedf-5976-4ba4-ba49-248330c71985">
+
+
+---
+
+# 📂 Project Structure
+
+```
+UART-Echo-System/
+│
+├── rtl/
+│   ├── uart_rx.v
+│   ├── uart_tx.v
+│   ├── baud_generator.v
+│   ├── synchronizer.v
+│   └── uart_top_echo.v
+│
+├── simulation/
+│   └── tb_uart_top_echo.v
+│
+├── constraints/
+│   └── uart_echo.xdc
+│
+└── README.md
+```
+
+---
+
+# ▶️ Simulation Instructions
+
+1. Open the project in Vivado
+2. Add RTL and testbench files
+3. Set simulation runtime:
+
+```
+Simulation Run Time = 3 ms
+```
+
+4. Run Behavioral Simulation
+5. Analyze UART RX and TX waveforms
+
+---
+
+# 📚 Concepts Demonstrated
+
+This project demonstrates practical implementation of:
+
+- RTL Design Methodology
+- FSM Architecture
+- UART Protocol Implementation
+- Clock Domain Crossing
+- Metastability Handling
+- Digital Timing Analysis
+- FPGA Synthesis Flow
+- Hardware Verification
+
+---
+
+# 🚀 Future Improvements
+
+Possible extensions:
+
+- Configurable baud rate support
+- Parity bit implementation
+- FIFO buffering
+- AXI4-Lite interface integration
+- Hardware testing using USB-UART bridge
+
+---
+
+# 📜 License
+
+This project is intended for educational and research purposes.
